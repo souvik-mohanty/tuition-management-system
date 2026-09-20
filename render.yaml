@@ -1,0 +1,47 @@
+# Render Blueprint for the Classops backend (Spring Boot + Redis). The frontend is deployed on Vercel.
+# PostgreSQL stays on Neon: enter the DB_* values in the Render dashboard when the Blueprint is created.
+services:
+  - type: web
+    name: classops-api
+    runtime: docker
+    region: singapore # same region as the Neon database (ap-southeast-1) to keep DB latency low
+    plan: free # free instances spin down when idle; use "starter" or higher for production
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL # jdbc:postgresql://<neon-host>/<db>?sslmode=require
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FIREBASE_PROJECT_ID
+        value: tuition-management-syste-2d320
+      - key: CORS_ALLOWED_ORIGINS # your Vercel URL(s), comma separated, e.g. https://classops.vercel.app
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: classops-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: classops-redis
+          property: port
+
+  - type: keyvalue
+    name: classops-redis
+    region: singapore
+    plan: free # not persistent: a restart logs everyone out (sessions live here)
+    maxmemoryPolicy: volatile-lru # every key we store has a TTL, so only expiring keys are evicted
+    ipAllowList: [] # private network only; not reachable from the internet

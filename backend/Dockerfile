@@ -15,5 +15,5 @@ ENV SPRING_PROFILES_ACTIVE=prod \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 EXPOSE 8089
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8089/actuator/health || exit 1
+  CMD wget -qO- http://localhost:${PORT:-8089}/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -61,3 +61,32 @@ Before going live:
 
 CI (`.github/workflows/ci.yml`) builds and tests the backend against Postgres and Redis service containers, builds
 the frontend, and builds both Docker images.
+
+## Deploy: Vercel (frontend) + Render (backend)
+
+The Docker Compose setup above is the self-hosted option. The hosted setup is:
+
+**1. Backend on Render** (`render.yaml` Blueprint at the repo root)
+1. Render dashboard > New > **Blueprint** > connect this repo. It creates `classops-api` (Docker, from `backend/`) and
+   a private Key Value (Redis) instance `classops-redis`, and wires the Redis host/port automatically.
+2. When prompted, enter `DB_URL` (`jdbc:postgresql://<neon-host>/<db>?sslmode=require`), `DB_USERNAME`, `DB_PASSWORD`
+   and `CORS_ALLOWED_ORIGINS` (your Vercel URL, e.g. `https://classops.vercel.app`; comma-separate several).
+   `JWT_SECRET` is generated for you. Optionally add `SEED_OWNER_PHONE` to create a first owner.
+3. Note the service URL (e.g. `https://classops-api.onrender.com`). Health check: `/actuator/health`.
+
+**2. Frontend on Vercel** (`frontend/vercel.json`)
+1. Vercel > Add New Project > import this repo and set **Root Directory** to `frontend`.
+2. Environment variables:
+   - `VITE_API_BASE_URL` = the Render service URL (no trailing slash)
+   - `VITE_USE_MOCK_AUTH` = `false`
+   - `VITE_USE_MOCK_API` = `true` only if you want mock feature data (see note below), otherwise `false`
+   - `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID` (already set in `.env.production`)
+3. Add the Vercel domain to Firebase > Authentication > Settings > **Authorized domains**, then update
+   `CORS_ALLOWED_ORIGINS` on Render if the domain changes.
+
+Notes:
+- Only login is wired to the real backend so far. The owner dashboard and other modules still need their backend
+  endpoints; with `VITE_USE_MOCK_API=false` they show an error state instead of data.
+- Render's free web service sleeps when idle (first request after a pause is slow) and the free Key Value instance is
+  not persistent, so a Redis restart signs everyone out. Use paid plans for production.
+- Frontend and API are on different origins, so CORS must list the exact Vercel origin (no wildcard).
