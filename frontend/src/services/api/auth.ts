@@ -8,7 +8,8 @@ import { apiClient, endpoints } from './client'
 import { ApiClientError } from './errors'
 
 export const RECAPTCHA_CONTAINER_ID = 'recaptcha-container'
-const COUNTRY_CODE = '+91'
+// Mock accounts are keyed by 10-digit Indian numbers.
+const mockKey = (e164: string) => e164.replace(/^\+91/, '')
 
 let confirmation: ConfirmationResult | null = null
 let verifier: RecaptchaVerifier | null = null
@@ -57,16 +58,17 @@ function mapFirebaseError(e: unknown): ApiClientError {
  * Real flow: Firebase sends the SMS and verifies the OTP in the browser, then the Firebase ID token is
  * exchanged with our backend, which is the authority on who may log in and issues our JWT.
  */
+/** `phone` is E.164 (e.g. +919000000001). */
 export async function sendOtp(phone: string): Promise<void> {
   if (env.useMockAuth) {
-    if (!findMockSession(phone)) throw new ApiClientError(404, 'This number is not registered with any tuition center.')
+    if (!findMockSession(mockKey(phone))) throw new ApiClientError(404, 'This number is not registered with any tuition center.')
     await delay(undefined, 600)
     return
   }
   try {
     const auth = getFirebaseAuth()
     verifier ??= new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, { size: 'invisible' })
-    confirmation = await signInWithPhoneNumber(auth, `${COUNTRY_CODE}${phone}`, verifier)
+    confirmation = await signInWithPhoneNumber(auth, phone, verifier)
   } catch (e) {
     resetVerifier()
     throw mapFirebaseError(e)
@@ -78,7 +80,7 @@ export async function verifyOtp(phone: string, otp: string): Promise<AuthSession
     await delay(undefined, 600)
     if (otp === '000000') throw new ApiClientError(410, 'This OTP has expired. Please request a new one.')
     if (otp !== MOCK_OTP) throw new ApiClientError(400, 'Invalid OTP. Please check and try again.')
-    const session = findMockSession(phone)
+    const session = findMockSession(mockKey(phone))
     if (!session) throw new ApiClientError(404, 'This number is not registered with any tuition center.')
     return session
   }

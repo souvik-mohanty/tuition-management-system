@@ -15,9 +15,26 @@ import { normalizeError } from '@/services/api/errors'
 import { useAuthStore } from '@/store/authStore'
 import { useTenantStore } from '@/store/tenantStore'
 
-const phoneSchema = z.object({
-  phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number'),
-})
+const phoneSchema = z
+  .object({
+    countryCode: z.string().regex(/^\d{1,3}$/, 'Enter a valid country code'),
+    phone: z.string(),
+  })
+  .superRefine((v, ctx) => {
+    const india = v.countryCode === '91'
+    const valid = india ? /^[6-9]\d{9}$/.test(v.phone) : /^\d{6,14}$/.test(v.phone)
+    if (!valid) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['phone'],
+        message: india ? 'Enter a valid 10-digit mobile number' : 'Enter a valid mobile number',
+      })
+    }
+  })
+
+const digitsOnly = (e: { target: { value: string } }) => {
+  e.target.value = e.target.value.replace(/\D/g, '')
+}
 const otpSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit OTP'),
 })
@@ -46,7 +63,10 @@ function LoginSteps() {
     return () => clearTimeout(t)
   }, [countdown])
 
-  const phoneForm = useForm<z.infer<typeof phoneSchema>>({ resolver: zodResolver(phoneSchema) })
+  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
+    resolver: zodResolver(phoneSchema),
+    defaultValues: { countryCode: '91', phone: '' },
+  })
   const otpForm = useForm<z.infer<typeof otpSchema>>({ resolver: zodResolver(otpSchema) })
 
   const sendMutation = useMutation({
@@ -79,25 +99,48 @@ function LoginSteps() {
     return (
       <form
         noValidate
-        onSubmit={phoneForm.handleSubmit((v) => sendMutation.mutate(v.phone))}
+        onSubmit={phoneForm.handleSubmit((v) => sendMutation.mutate(`+${v.countryCode}${v.phone}`))}
         className="space-y-4"
       >
-        <div className="space-y-2">
-          <Label htmlFor="phone">Mobile number</Label>
-          <Input
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            maxLength={10}
-            placeholder="10-digit mobile number"
-            aria-invalid={!!phoneForm.formState.errors.phone}
-            aria-describedby="phone-error"
-            {...phoneForm.register('phone')}
-          />
-          <div id="phone-error">
-            <FormError message={phoneForm.formState.errors.phone?.message ?? sendError} />
+        <div className="grid grid-cols-[6rem_1fr] gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="countryCode">Country code</Label>
+            <div className="flex items-center gap-1">
+              <span aria-hidden className="text-sm text-muted-foreground">
+                +
+              </span>
+              <Input
+                id="countryCode"
+                inputMode="numeric"
+                autoComplete="tel-country-code"
+                maxLength={3}
+                aria-invalid={!!phoneForm.formState.errors.countryCode}
+                aria-describedby="phone-error"
+                {...phoneForm.register('countryCode', { onChange: digitsOnly })}
+              />
+            </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Mobile number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              maxLength={14}
+              placeholder="Mobile number"
+              aria-invalid={!!phoneForm.formState.errors.phone}
+              aria-describedby="phone-error"
+              {...phoneForm.register('phone', { onChange: digitsOnly })}
+            />
+          </div>
+        </div>
+        <div id="phone-error">
+          <FormError
+            message={
+              phoneForm.formState.errors.countryCode?.message ?? phoneForm.formState.errors.phone?.message ?? sendError
+            }
+          />
         </div>
         <Button type="submit" className="w-full" loading={sendMutation.isPending}>
           Send OTP
@@ -119,7 +162,7 @@ function LoginSteps() {
       className="space-y-4"
     >
       <div className="space-y-2">
-        <Label htmlFor="otp">Enter the OTP sent to +91 {phone}</Label>
+        <Label htmlFor="otp">Enter the OTP sent to {phone}</Label>
         <Input
           id="otp"
           inputMode="numeric"
