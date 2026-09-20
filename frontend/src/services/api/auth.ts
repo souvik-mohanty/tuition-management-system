@@ -21,6 +21,7 @@ function resetVerifier() {
 function mapFirebaseError(e: unknown): ApiClientError {
   if (e instanceof ApiClientError) return e
   if (e instanceof FirebaseError) {
+    console.error('[firebase auth]', e.code, e.message)
     switch (e.code) {
       case 'auth/invalid-phone-number':
         return new ApiClientError(400, 'Enter a valid mobile number.')
@@ -36,8 +37,17 @@ function mapFirebaseError(e: unknown): ApiClientError {
         return new ApiClientError(0, 'Network error. Check your connection and try again.')
       case 'auth/captcha-check-failed':
         return new ApiClientError(400, 'Verification check failed. Please refresh the page and try again.')
+      case 'auth/operation-not-allowed':
+        return new ApiClientError(503, 'Phone sign-in is not enabled for this app yet. Please contact support.')
+      case 'auth/billing-not-enabled':
+        return new ApiClientError(503, 'SMS verification is not available right now. Please contact support.')
+      case 'auth/unauthorized-domain':
+        return new ApiClientError(503, 'This website is not authorised for sign-in yet. Please contact support.')
       default:
-        return new ApiClientError(500, 'Unable to verify your number right now. Please try again.')
+        return new ApiClientError(
+          500,
+          'Unable to verify your number right now. Please try again.' + (import.meta.env.DEV ? ` [${e.code}]` : ''),
+        )
     }
   }
   return new ApiClientError(-1, 'Unexpected error occurred.')

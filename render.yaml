@@ -9,7 +9,7 @@ services:
     plan: free # free instances spin down when idle; use "starter" or higher for production
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /actuator/health
+    healthCheckPath: /actuator/health/liveness
     autoDeploy: true
     buildFilter:
       paths:

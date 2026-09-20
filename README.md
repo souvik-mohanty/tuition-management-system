@@ -74,7 +74,7 @@ The Docker Compose setup above is the self-hosted option. The hosted setup is:
    `REDIS_HOST`, `REDIS_PASSWORD` (from Upstash; `REDIS_PORT` defaults to 6379 and `REDIS_SSL` to true) and
    `CORS_ALLOWED_ORIGINS` (your Vercel URL, e.g. `https://classops.vercel.app`; comma-separate several).
    `JWT_SECRET` is generated for you. Optionally add `SEED_OWNER_PHONE` to create a first owner.
-3. Note the service URL (e.g. `https://classops-api.onrender.com`). Health check: `/actuator/health`.
+3. Note the service URL (e.g. `https://classops-api.onrender.com`). Render health check: `/actuator/health/liveness` (process is up); `/actuator/health` also reports Redis and the database.
 
 **2. Frontend on Vercel** (`frontend/vercel.json`)
 1. Vercel > Add New Project > import this repo and set **Root Directory** to `frontend`.
