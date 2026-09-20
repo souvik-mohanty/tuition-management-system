@@ -67,10 +67,12 @@ the frontend, and builds both Docker images.
 The Docker Compose setup above is the self-hosted option. The hosted setup is:
 
 **1. Backend on Render** (`render.yaml` Blueprint at the repo root)
-1. Render dashboard > New > **Blueprint** > connect this repo. It creates `classops-api` (Docker, from `backend/`) and
-   a private Key Value (Redis) instance `classops-redis`, and wires the Redis host/port automatically.
-2. When prompted, enter `DB_URL` (`jdbc:postgresql://<neon-host>/<db>?sslmode=require`), `DB_USERNAME`, `DB_PASSWORD`
-   and `CORS_ALLOWED_ORIGINS` (your Vercel URL, e.g. `https://classops.vercel.app`; comma-separate several).
+0. Create a free Redis at Upstash (or any TLS Redis). Note its endpoint host, port and password.
+1. Render dashboard > New > **Blueprint** > connect this repo. It creates one web service, `classops-api` (Docker, from
+   `backend/`), so it needs only one free Render slot.
+2. When prompted, enter `DB_URL` (`jdbc:postgresql://<neon-host>/<db>?sslmode=require`), `DB_USERNAME`, `DB_PASSWORD`,
+   `REDIS_HOST`, `REDIS_PASSWORD` (from Upstash; `REDIS_PORT` defaults to 6379 and `REDIS_SSL` to true) and
+   `CORS_ALLOWED_ORIGINS` (your Vercel URL, e.g. `https://classops.vercel.app`; comma-separate several).
    `JWT_SECRET` is generated for you. Optionally add `SEED_OWNER_PHONE` to create a first owner.
 3. Note the service URL (e.g. `https://classops-api.onrender.com`). Health check: `/actuator/health`.
 
@@ -87,6 +89,6 @@ The Docker Compose setup above is the self-hosted option. The hosted setup is:
 Notes:
 - Only login is wired to the real backend so far. The owner dashboard and other modules still need their backend
   endpoints; with `VITE_USE_MOCK_API=false` they show an error state instead of data.
-- Render's free web service sleeps when idle (first request after a pause is slow) and the free Key Value instance is
-  not persistent, so a Redis restart signs everyone out. Use paid plans for production.
+- Render's free web service sleeps when idle (first request after a pause is slow) and Redis holds login sessions, so if
+  your Redis loses data everyone is signed out. Use paid plans for production.
 - Frontend and API are on different origins, so CORS must list the exact Vercel origin (no wildcard).
