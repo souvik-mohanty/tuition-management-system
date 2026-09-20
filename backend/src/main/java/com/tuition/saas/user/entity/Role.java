@@ -14,5 +14,6 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;   // SUPER_ADMIN, TUITION_ADMIN, TEACHER, STUDENT
+    @Column(unique = true, nullable = false)
+    private String name;   // SUPER_ADMIN, TUITION_ADMIN, TEACHER, STUDENT, PARENT
 }

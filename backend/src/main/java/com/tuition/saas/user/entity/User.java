@@ -22,6 +22,8 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    // E.164 (e.g. +919000000001), the identity verified by Firebase phone auth.
+    @Column(unique = true)
     private String phone;
 
     private String password;

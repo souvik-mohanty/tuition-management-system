@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROLE_LABEL } from '@/constants/navigation'
 import { useSession } from '@/hooks/useSession'
+import { logoutRequest } from '@/services/api/auth'
 import { useAuthStore } from '@/store/authStore'
 import { useTenantStore } from '@/store/tenantStore'
 
@@ -31,6 +32,7 @@ export function UserMenu() {
   }, [open])
 
   const logout = () => {
+    void logoutRequest() // sends the token before the local session is cleared below
     queryClient.clear()
     clearSession()
     setCurrentTuition(null)

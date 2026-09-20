@@ -1,11 +1,46 @@
+server:
+  port: ${SERVER_PORT:8089}
+
 spring:
+  config:
+    # Local secrets live in backend/.env (git-ignored), in KEY=value format.
+    import: optional:file:./.env[.properties]
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/tuition_saas
-    username: postgres
-    password: new123
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tuition_saas}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+app:
+  jwt:
+    # Required. At least 32 characters. Never commit a real value.
+    secret: ${JWT_SECRET}
+    ttl-minutes: 720
+  firebase:
+    # Public identifier, not a secret. ID tokens are verified against Google's public keys.
+    project-id: ${FIREBASE_PROJECT_ID:tuition-management-syste-2d320}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  auth:
+    rate-limit:
+      window-seconds: 300
+      ip-max: 20
+      phone-max: 10
+    # Max age of the Firebase sign-in (auth_time) accepted for login.
+    max-sign-in-age-seconds: 300
+  seed:
+    # Optional: creates a demo tuition + owner with this E.164 phone (e.g. +919000000001) on startup.
+    owner-phone: ${SEED_OWNER_PHONE:}
+    owner-name: ${SEED_OWNER_NAME:Demo Owner}

@@ -21,7 +21,9 @@ apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
     const normalized = normalizeError(error)
-    if (normalized.status === 401) {
+    // A 401 from the auth endpoints means "login failed", not "session expired".
+    const isAuthCall = String(error?.config?.url ?? '').startsWith(endpoints.auth)
+    if (normalized.status === 401 && !isAuthCall) {
       useAuthStore.getState().clearSession()
       useTenantStore.getState().setCurrentTuition(null)
       if (!window.location.pathname.startsWith('/session-expired')) {

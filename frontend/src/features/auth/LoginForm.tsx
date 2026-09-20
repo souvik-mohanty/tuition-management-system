@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ROLE_HOME } from '@/constants/navigation'
-import { sendOtp, verifyOtp } from '@/services/api/auth'
+import { RECAPTCHA_CONTAINER_ID, sendOtp, verifyOtp } from '@/services/api/auth'
 import { normalizeError } from '@/services/api/errors'
 import { useAuthStore } from '@/store/authStore'
 import { useTenantStore } from '@/store/tenantStore'
@@ -33,7 +33,7 @@ function FormError({ message }: { message?: string }) {
   )
 }
 
-export function LoginForm() {
+function LoginSteps() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
   const setCurrentTuition = useTenantStore((s) => s.setCurrentTuition)
@@ -102,7 +102,7 @@ export function LoginForm() {
         <Button type="submit" className="w-full" loading={sendMutation.isPending}>
           Send OTP
         </Button>
-        {env.useMockApi && (
+        {env.useMockAuth && (
           <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
             Demo mode: use 9000000001 (owner), 9000000002 (teacher), 9000000003 (student) or 9000000004 (parent).
             OTP is 123456 (000000 simulates an expired OTP).
@@ -160,5 +160,15 @@ export function LoginForm() {
         </button>
       </div>
     </form>
+  )
+}
+
+export function LoginForm() {
+  return (
+    <>
+      <LoginSteps />
+      {/* Persistent host for Firebase's invisible reCAPTCHA; must outlive the phone -> OTP step switch. */}
+      <div id={RECAPTCHA_CONTAINER_ID} />
+    </>
   )
 }

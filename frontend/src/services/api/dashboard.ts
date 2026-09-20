@@ -6,7 +6,8 @@ import { delay, mockDashboardsByTenant } from '../mock/db'
 
 export async function getOwnerDashboard(tuitionId: string): Promise<OwnerDashboardData> {
   if (env.useMockApi) {
-    const data = mockDashboardsByTenant[tuitionId]
+    // Mock mode only: real (numeric) tenant ids from the backend fall back to the sample tuition's data.
+    const data = mockDashboardsByTenant[tuitionId] ?? mockDashboardsByTenant.t1
     if (!data) throw new ApiClientError(404, 'No dashboard data for this tuition center.')
     return delay(data, 700)
   }
