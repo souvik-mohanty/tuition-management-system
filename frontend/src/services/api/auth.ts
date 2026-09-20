@@ -1,5 +1,11 @@
 import { FirebaseError } from 'firebase/app'
-import { RecaptchaVerifier, signInWithPhoneNumber, signOut, type ConfirmationResult } from 'firebase/auth'
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signOut,
+  type ConfirmationResult,
+  type User,
+} from 'firebase/auth'
 import { env } from '@/app/config/env'
 import type { AuthSession } from '@/types'
 import { getFirebaseAuth } from '../firebase/client'
@@ -11,8 +17,19 @@ export const RECAPTCHA_CONTAINER_ID = 'recaptcha-container'
 // Mock accounts are keyed by 10-digit Indian numbers.
 const mockKey = (e164: string) => e164.replace(/^\+91/, '')
 
+// The free Render instance can take ~a minute to wake up, so the login exchange gets a longer timeout.
+const EXCHANGE_TIMEOUT_MS = 60_000
+
 let confirmation: ConfirmationResult | null = null
+let verifiedUser: User | null = null
 let verifier: RecaptchaVerifier | null = null
+
+function clearVerification() {
+  confirmation = null
+  verifiedUser = null
+  // Our JWT is the session; don't keep a parallel Firebase session in the browser.
+  void signOut(getFirebaseAuth())
+}
 
 function resetVerifier() {
   verifier?.clear()
@@ -65,6 +82,7 @@ export async function sendOtp(phone: string): Promise<void> {
     await delay(undefined, 600)
     return
   }
+  verifiedUser = null // a new OTP starts a new verification
   try {
     const auth = getFirebaseAuth()
     verifier ??= new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, { size: 'invisible' })
@@ -84,23 +102,39 @@ export async function verifyOtp(phone: string, otp: string): Promise<AuthSession
     if (!session) throw new ApiClientError(404, 'This number is not registered with any tuition center.')
     return session
   }
-  if (!confirmation) throw new ApiClientError(400, 'Please request an OTP first.')
+  if (!confirmation && !verifiedUser) throw new ApiClientError(400, 'Please request an OTP first.')
 
   let idToken: string
   try {
-    const credential = await confirmation.confirm(otp)
-    idToken = await credential.user.getIdToken(true)
+    // An OTP can only be used once. If the backend call below failed to get through, keep the verified
+    // Firebase user so the retry only needs a fresh ID token, not a new OTP.
+    if (!verifiedUser) {
+      const credential = await confirmation!.confirm(otp)
+      verifiedUser = credential.user
+    }
+    idToken = await verifiedUser.getIdToken(true)
   } catch (e) {
     throw mapFirebaseError(e)
   }
 
   try {
-    const { data } = await apiClient.post<AuthSession>(`${endpoints.auth}/firebase`, { idToken })
-    confirmation = null
+    const { data } = await apiClient.post<AuthSession>(
+      `${endpoints.auth}/firebase`,
+      { idToken },
+      { timeout: EXCHANGE_TIMEOUT_MS },
+    )
+    clearVerification()
     return data
-  } finally {
-    // Our JWT is the session; don't keep a parallel Firebase session in the browser.
-    void signOut(getFirebaseAuth())
+  } catch (e) {
+    if (e instanceof ApiClientError && e.status === 0) {
+      throw new ApiClientError(
+        0,
+        "Your number is verified, but we couldn't reach the Classops server. Please try again in a moment.",
+      )
+    }
+    // The server answered (e.g. not registered), so this verification can't be retried.
+    clearVerification()
+    throw e
   }
 }
 
