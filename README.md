@@ -1,4 +1,4 @@
-# tuition-management-system
+# Classops
 
 - `backend/` Spring Boot API (PostgreSQL, Redis)
 - `frontend/` React + TypeScript app

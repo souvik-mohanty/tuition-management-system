@@ -11,8 +11,8 @@
 	<groupId>com.tuition</groupId>
 	<artifactId>saas</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>saas</name>
-	<description>Saas project</description>
+	<name>Classops</name>
+	<description>Classops backend API</description>
 	<url/>
 	<licenses>
 		<license/>

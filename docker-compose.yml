@@ -1,3 +1,5 @@
+name: classops
+
 # Full stack: nginx (frontend + /api proxy) -> backend -> Redis. PostgreSQL is external (e.g. Neon).
 # Usage: cp .env.example .env, fill it in, then: docker compose up -d --build
 services:

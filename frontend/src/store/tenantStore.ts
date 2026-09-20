@@ -12,6 +12,6 @@ export const useTenantStore = create<TenantState>()(
       currentTuitionId: null,
       setCurrentTuition: (id) => set({ currentTuitionId: id }),
     }),
-    { name: 'tuitionsaas-tenant' },
+    { name: 'classops-tenant' },
   ),
 )

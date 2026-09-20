@@ -19,6 +19,6 @@ export const useAuthStore = create<AuthState>()(
       setSession: ({ accessToken, user, memberships }) => set({ accessToken, user, memberships }),
       clearSession: () => set({ accessToken: null, user: null, memberships: [] }),
     }),
-    { name: 'tuitionsaas-auth' },
+    { name: 'classops-auth' },
   ),
 )

@@ -1,6 +1,7 @@
-import { ChevronDown, GraduationCap } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { Logo } from '@/components/common/Logo'
 import { NAV_BY_ROLE, type NavGroup } from '@/constants/navigation'
 import { cn } from '@/lib/utils'
 import type { Role } from '@/types'
@@ -53,10 +54,7 @@ export function SidebarContent({ role, onNavigate }: { role: Role; onNavigate?: 
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 shrink-0 items-center gap-2 border-b px-5">
-        <span className="rounded-md bg-primary p-1.5 text-primary-foreground">
-          <GraduationCap className="h-5 w-5" aria-hidden />
-        </span>
-        <span className="text-lg font-semibold">TuitionSaaS</span>
+        <Logo />
       </div>
       <nav aria-label="Main navigation" className="flex-1 overflow-y-auto p-3">
         {NAV_BY_ROLE[role].map((group, i) => (

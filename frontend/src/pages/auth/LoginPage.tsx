@@ -1,5 +1,5 @@
-import { GraduationCap } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
+import { APP_NAME, Logo } from '@/components/common/Logo'
 import { Card } from '@/components/ui/card'
 import { ROLE_HOME } from '@/constants/navigation'
 import { LoginForm } from '@/features/auth/LoginForm'
@@ -12,11 +12,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 flex items-center justify-center gap-2">
-          <span className="rounded-md bg-primary p-1.5 text-primary-foreground">
-            <GraduationCap className="h-5 w-5" aria-hidden />
-          </span>
-          <span className="text-xl font-semibold">TuitionSaaS</span>
+        <Link to="/" aria-label={APP_NAME + ' home'} className="mb-6 flex justify-center">
+          <Logo textClassName="text-xl" />
         </Link>
         <Card className="p-6 sm:p-8">
           <h1 className="text-xl font-semibold">Log in</h1>
