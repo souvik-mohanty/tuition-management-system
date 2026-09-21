@@ -29,7 +29,7 @@ public class GoogleAuthService {
     private static final String JWK_SET_URI = "https://www.googleapis.com/oauth2/v3/certs";
     private static final Set<String> ISSUERS = Set.of("https://accounts.google.com", "accounts.google.com");
 
-    public record GoogleIdentity(String subject, String email) {
+    public record GoogleIdentity(String subject, String email, String name) {
     }
 
     private final String clientId;
@@ -54,7 +54,7 @@ public class GoogleAuthService {
             log.warn("Google ID token rejected: {}", e.getMessage());
             throw new AuthException(HttpStatus.UNAUTHORIZED, "Google sign-in failed. Please try again.", reasonCode(e.getMessage()));
         }
-        return new GoogleIdentity(jwt.getSubject(), jwt.getClaimAsString("email"));
+        return new GoogleIdentity(jwt.getSubject(), jwt.getClaimAsString("email"), jwt.getClaimAsString("name"));
     }
 
     /** Maps a decoder failure to a short code that is safe to show to the user. */

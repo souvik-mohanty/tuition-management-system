@@ -16,8 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
-/** Ensures the fixed roles exist and, if SEED_OWNER_PHONE is set, a demo tuition + owner to log in with. */
+/**
+ * Ensures the fixed roles exist and, if SEED_OWNER_PHONE and/or SEED_OWNER_EMAIL is set, a demo tuition + owner to log
+ * in with. If that owner already exists without an email, SEED_OWNER_EMAIL is filled in so Google sign-in can match it.
+ */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -29,17 +33,20 @@ public class DataInitializer implements CommandLineRunner {
     private final TuitionRepository tuitions;
     private final UserTuitionRoleRepository memberships;
     private final String ownerPhone;
+    private final String ownerEmail;
     private final String ownerName;
 
     public DataInitializer(RoleRepository roles, UserRepository users, TuitionRepository tuitions,
                            UserTuitionRoleRepository memberships,
                            @Value("${app.seed.owner-phone:}") String ownerPhone,
+                           @Value("${app.seed.owner-email:}") String ownerEmail,
                            @Value("${app.seed.owner-name:Demo Owner}") String ownerName) {
         this.roles = roles;
         this.users = users;
         this.tuitions = tuitions;
         this.memberships = memberships;
-        this.ownerPhone = ownerPhone;
+        this.ownerPhone = ownerPhone.trim();
+        this.ownerEmail = ownerEmail.trim();
         this.ownerName = ownerName;
     }
 
@@ -54,13 +61,29 @@ public class DataInitializer implements CommandLineRunner {
             }
         });
 
-        if (ownerPhone.isBlank() || users.findByPhone(ownerPhone).isPresent()) {
+        if (ownerPhone.isBlank() && ownerEmail.isBlank()) {
             return;
         }
-        User owner = users.save(User.builder().name(ownerName).phone(ownerPhone).build());
+        Optional<User> existing = !ownerPhone.isBlank()
+                ? users.findByPhone(ownerPhone)
+                : users.findByEmailIgnoreCase(ownerEmail);
+        if (existing.isPresent()) {
+            User user = existing.get();
+            if (!ownerEmail.isBlank() && (user.getEmail() == null || user.getEmail().isBlank())) {
+                user.setEmail(ownerEmail.toLowerCase());
+                users.save(user);
+                log.info("Set email on existing owner {}", ownerPhone.isBlank() ? ownerEmail : ownerPhone);
+            }
+            return;
+        }
+        User owner = users.save(User.builder()
+                .name(ownerName)
+                .phone(ownerPhone.isBlank() ? null : ownerPhone)
+                .email(ownerEmail.isBlank() ? null : ownerEmail.toLowerCase())
+                .build());
         Tuition tuition = tuitions.save(Tuition.builder().name("Demo Tuition Center").build());
         Role ownerRole = roles.findByName("TUITION_ADMIN").orElseThrow();
         memberships.save(UserTuitionRole.builder().user(owner).tuition(tuition).role(ownerRole).build());
-        log.info("Seeded demo owner {} with tuition '{}'", ownerPhone, tuition.getName());
+        log.info("Seeded demo owner {} with tuition '{}'", ownerPhone.isBlank() ? ownerEmail : ownerPhone, tuition.getName());
     }
 }

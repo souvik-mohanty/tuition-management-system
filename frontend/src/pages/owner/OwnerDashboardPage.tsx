@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { ScheduleList } from '@/components/common/DashboardLists'
 import { PageHeader } from '@/components/common/PageHeader'
 import { StatCard } from '@/components/common/StatCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
@@ -19,30 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProgressBar } from '@/components/ui/progress'
 import { useOwnerDashboard } from '@/features/dashboard/useOwnerDashboard'
 import { useSession } from '@/hooks/useSession'
-import type { ScheduleItem } from '@/types'
 import { formatCurrency, greeting } from '@/utils/format'
-
-function ScheduleList({ items, emptyTitle }: { items: ScheduleItem[]; emptyTitle: string }) {
-  if (items.length === 0) return <EmptyState title={emptyTitle} />
-  return (
-    <ul className="divide-y">
-      {items.map((c) => (
-        <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-          <div className="min-w-0">
-            <p className="truncate font-medium">{c.title}</p>
-            <p className="text-sm text-muted-foreground">
-              {c.batch} · {c.subject} · {c.teacher}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {c.time} · {c.room}
-            </p>
-          </div>
-          <StatusBadge status={c.status} />
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 export default function OwnerDashboardPage() {
   const { user, tuitionId, tuitionName } = useSession()

@@ -15,7 +15,9 @@ const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const SelectTuitionPage = lazy(() => import('@/pages/auth/SelectTuitionPage'))
 const OwnerDashboardPage = lazy(() => import('@/pages/owner/OwnerDashboardPage'))
-const RoleDashboardPage = lazy(() => import('@/pages/RoleDashboardPage'))
+const TeacherDashboardPage = lazy(() => import('@/pages/teacher/TeacherDashboardPage'))
+const StudentDashboardPage = lazy(() => import('@/pages/student/StudentDashboardPage'))
+const ParentDashboardPage = lazy(() => import('@/pages/parent/ParentDashboardPage'))
 const SessionExpiredPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.SessionExpiredPage })))
 const UnauthorizedPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.UnauthorizedPage })))
 const NotFoundPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.NotFoundPage })))
@@ -91,13 +93,18 @@ const parentModules: ModuleDef[] = [
 const toRoutes = (defs: ModuleDef[]): RouteObject[] =>
   defs.map(([path, title, phase]) => ({ path, element: <ModulePage title={title} phase={phase} /> }))
 
-const roleSection = (prefix: string, role: 'TEACHER' | 'STUDENT' | 'PARENT', modules: ModuleDef[]): RouteObject => ({
+const roleSection = (
+  prefix: string,
+  role: 'TEACHER' | 'STUDENT' | 'PARENT',
+  Dashboard: React.LazyExoticComponent<() => React.JSX.Element>,
+  modules: ModuleDef[],
+): RouteObject => ({
   element: <RequireRole role={role} />,
   children: [
     {
       element: <DashboardLayout />,
       children: [
-        { path: `${prefix}/dashboard`, element: suspense(<RoleDashboardPage />) },
+        { path: `${prefix}/dashboard`, element: suspense(<Dashboard />) },
         ...toRoutes(modules).map((r) => ({ ...r, path: `${prefix}/${r.path}` })),
       ],
     },
@@ -134,9 +141,9 @@ export const router = createBrowserRouter([
               },
             ],
           },
-          roleSection('/teacher', 'TEACHER', teacherModules),
-          roleSection('/student', 'STUDENT', studentModules),
-          roleSection('/parent', 'PARENT', parentModules),
+          roleSection('/teacher', 'TEACHER', TeacherDashboardPage, teacherModules),
+          roleSection('/student', 'STUDENT', StudentDashboardPage, studentModules),
+          roleSection('/parent', 'PARENT', ParentDashboardPage, parentModules),
         ],
       },
       { path: '/home', element: <Navigate to="/" replace /> },

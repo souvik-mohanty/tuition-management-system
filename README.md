@@ -20,7 +20,12 @@ with the login and the backend returns only that role's tuition memberships; if 
 rejected ("This account is not registered as a Teacher."). The login page also pings `/actuator/health/liveness` and shows
 "Waking up the server…" while a sleeping free-tier backend starts.
 
-Users cannot self-register: the email (or E.164 phone, e.g. `+919000000001`) must already exist in `users`.
+**Demo mode:** with `DEMO_MODE=true` (set in `render.yaml` for the hosted demo) any verified Google account can sign in
+as any role; the user is auto-created and the chosen role is granted on a demo tuition center, so every role's dashboard
+can be shown. With it off (the default) only registered users with that role get in. Dashboards currently show built-in
+sample data (`VITE_USE_MOCK_API=true`). **Never enable demo mode with real data.**
+
+Users cannot self-register (unless demo mode is on): the email (or E.164 phone, e.g. `+919000000001`) must already exist in `users`.
 
 ### Google Cloud console (one-time, for Google sign-in)
 APIs & Services > Credentials > your OAuth 2.0 **Web client**:

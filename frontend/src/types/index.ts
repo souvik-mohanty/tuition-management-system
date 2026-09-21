@@ -69,3 +69,63 @@ export interface ApiError {
   message: string
   fieldErrors?: Record<string, string>
 }
+
+export interface ProgressItem {
+  name: string
+  progress: number
+}
+
+export interface AssignmentItem {
+  id: string
+  title: string
+  subject: string
+  due: string
+  status: 'PENDING' | 'COMPLETED' | 'OVERDUE'
+}
+
+export interface ResultItem {
+  id: string
+  test: string
+  subject: string
+  marks: number
+  max: number
+  date: string
+}
+
+export interface TeacherDashboardData {
+  summary: {
+    assignedBatches: number
+    students: number
+    todaysClasses: number
+    attendancePending: number
+    submissionsToReview: number
+  }
+  schedule: ScheduleItem[]
+  batches: { id: string; name: string; students: number; syllabusPct: number }[]
+  attention: { id: string; text: string }[]
+}
+
+export interface StudentDashboardData {
+  batch: string
+  summary: { attendancePct: number; syllabusPct: number; pendingAssignments: number; pendingFees: number }
+  upcoming: ScheduleItem[]
+  subjects: ProgressItem[]
+  assignments: AssignmentItem[]
+  results: ResultItem[]
+}
+
+export interface ChildOverview {
+  id: string
+  name: string
+  batch: string
+  attendancePct: number
+  syllabusPct: number
+  feesPending: number
+  nextClass: string
+  assignments: AssignmentItem[]
+  results: ResultItem[]
+}
+
+export interface ParentDashboardData {
+  children: ChildOverview[]
+}
