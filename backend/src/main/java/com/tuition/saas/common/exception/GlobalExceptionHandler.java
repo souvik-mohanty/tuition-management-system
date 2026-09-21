@@ -20,7 +20,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<Map<String, Object>> handleAuth(AuthException e) {
-        return ResponseEntity.status(e.getStatus()).body(Map.of("message", e.getMessage()));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", e.getMessage());
+        if (e.getCode() != null) {
+            body.put("code", e.getCode());
+        }
+        return ResponseEntity.status(e.getStatus()).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

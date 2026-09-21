@@ -95,7 +95,8 @@ export function GoogleSignInButton({ role }: { role: Role }) {
     }
   }, [mutation.mutate])
 
-  const error = setupError ?? (mutation.error ? normalizeError(mutation.error).message : undefined)
+  const apiError = mutation.error ? normalizeError(mutation.error) : undefined
+  const error = setupError ?? (apiError ? (apiError.code ? `${apiError.message} (code: ${apiError.code})` : apiError.message) : undefined)
 
   return (
     <div className="space-y-2">

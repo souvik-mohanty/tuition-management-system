@@ -52,9 +52,21 @@ public class GoogleAuthService {
             jwt = decoder.decode(idToken);
         } catch (JwtException e) {
             log.warn("Google ID token rejected: {}", e.getMessage());
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "Google sign-in failed. Please try again.");
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "Google sign-in failed. Please try again.", reasonCode(e.getMessage()));
         }
         return new GoogleIdentity(jwt.getSubject(), jwt.getClaimAsString("email"));
+    }
+
+    /** Maps a decoder failure to a short code that is safe to show to the user. */
+    static String reasonCode(String message) {
+        String m = message == null ? "" : message.toLowerCase();
+        if (m.contains("invalid audience")) return "audience_mismatch";
+        if (m.contains("invalid issuer")) return "issuer_mismatch";
+        if (m.contains("expired")) return "token_expired";
+        if (m.contains("not verified") || m.contains("missing email")) return "email_not_verified";
+        if (m.contains("signed jwt rejected") || m.contains("signature")) return "bad_signature";
+        if (m.contains("jwk") || m.contains("connect") || m.contains("timed out") || m.contains("i/o error")) return "keys_unavailable";
+        return "invalid_token";
     }
 
     static OAuth2TokenValidatorResult validate(Jwt jwt, String clientId) {

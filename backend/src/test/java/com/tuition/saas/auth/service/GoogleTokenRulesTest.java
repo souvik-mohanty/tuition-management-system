@@ -75,4 +75,15 @@ class GoogleTokenRulesTest {
         assertEquals("Invalid audience", GoogleAuthService.validate(token(b -> { }), "").getErrors()
                 .iterator().next().getDescription());
     }
+
+    @Test
+    void mapsFailuresToSafeReasonCodes() {
+        assertEquals("audience_mismatch", GoogleAuthService.reasonCode("The token is invalid: Invalid audience"));
+        assertEquals("issuer_mismatch", GoogleAuthService.reasonCode("Invalid issuer"));
+        assertEquals("token_expired", GoogleAuthService.reasonCode("Jwt expired at 2026-01-01"));
+        assertEquals("email_not_verified", GoogleAuthService.reasonCode("Email is not verified"));
+        assertEquals("bad_signature", GoogleAuthService.reasonCode("Signed JWT rejected: Invalid signature"));
+        assertEquals("keys_unavailable", GoogleAuthService.reasonCode("Couldn't retrieve remote JWK set: Connection refused"));
+        assertEquals("invalid_token", GoogleAuthService.reasonCode(null));
+    }
 }

@@ -4,12 +4,14 @@ import type { ApiError } from '@/types'
 export class ApiClientError extends Error implements ApiError {
   status: number
   fieldErrors?: Record<string, string>
+  code?: string
 
-  constructor(status: number, message: string, fieldErrors?: Record<string, string>) {
+  constructor(status: number, message: string, fieldErrors?: Record<string, string>, code?: string) {
     super(message)
     this.name = 'ApiClientError'
     this.status = status
     this.fieldErrors = fieldErrors
+    this.code = code
   }
 }
 
@@ -34,7 +36,8 @@ export function normalizeError(error: unknown): ApiClientError {
     const fieldErrors = data?.errors && typeof data.errors === 'object' ? (data.errors as Record<string, string>) : undefined
     // Never surface stack traces; only trust short server messages.
     const safe = serverMessage && serverMessage.length < 200 && !serverMessage.includes('\n') ? serverMessage : undefined
-    return new ApiClientError(status, safe ?? MESSAGES[status] ?? 'Unexpected error occurred.', fieldErrors)
+    const code = typeof data?.code === 'string' && /^[a-z_]{1,40}$/.test(data.code) ? data.code : undefined
+    return new ApiClientError(status, safe ?? MESSAGES[status] ?? 'Unexpected error occurred.', fieldErrors, code)
   }
   return new ApiClientError(-1, 'Unexpected error occurred.')
 }
