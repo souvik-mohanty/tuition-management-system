@@ -34,7 +34,7 @@ public class AuthController {
     /** Exchanges a Google Sign-In ID token for our access JWT (user must already be registered by email). */
     @PostMapping("/google")
     public LoginResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request, HttpServletRequest http) {
-        return authService.loginWithGoogle(request.idToken(), http.getRemoteAddr());
+        return authService.loginWithGoogle(request.idToken(), request.role(), http.getRemoteAddr());
     }
 
     @PostMapping("/logout")

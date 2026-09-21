@@ -5,6 +5,7 @@ import { FormError } from '@/components/common/FormError'
 import { Button } from '@/components/ui/button'
 import { loginWithGoogle } from '@/services/api/auth'
 import { normalizeError } from '@/services/api/errors'
+import type { Role } from '@/types'
 import { useFinishLogin } from './useFinishLogin'
 
 interface GoogleIdApi {
@@ -39,11 +40,28 @@ function loadGoogleIdentity(): Promise<void> {
   return gisPromise
 }
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ role }: { role: Role }) {
   const finishLogin = useFinishLogin()
-  const mutation = useMutation({ mutationFn: loginWithGoogle, onSuccess: finishLogin })
+  const mutation = useMutation({
+    mutationFn: ({ credential, role }: { credential: string; role: Role }) => loginWithGoogle(credential, role),
+    onSuccess: finishLogin,
+  })
+  // The Google button is rendered once, so its callback reads the latest role from a ref.
+  const roleRef = useRef(role)
+  roleRef.current = role
   const holder = useRef<HTMLDivElement>(null)
   const [setupError, setSetupError] = useState<string>()
+  const [slow, setSlow] = useState(false)
+
+  // A sleeping free-tier server can take up to a minute to answer the first request.
+  useEffect(() => {
+    if (!mutation.isPending) {
+      setSlow(false)
+      return
+    }
+    const timer = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(timer)
+  }, [mutation.isPending])
 
   useEffect(() => {
     if (env.useMockAuth) return
@@ -58,7 +76,7 @@ export function GoogleSignInButton() {
         if (cancelled || !el || !window.google) return
         window.google.accounts.id.initialize({
           client_id: env.googleClientId,
-          callback: (response) => mutation.mutate(response.credential),
+          callback: (response) => mutation.mutate({ credential: response.credential, role: roleRef.current }),
         })
         window.google.accounts.id.renderButton(el, {
           theme: 'outline',
@@ -82,7 +100,7 @@ export function GoogleSignInButton() {
   return (
     <div className="space-y-2">
       {env.useMockAuth ? (
-        <Button type="button" variant="outline" className="w-full" loading={mutation.isPending} onClick={() => mutation.mutate('mock')}>
+        <Button type="button" variant="outline" className="w-full" loading={mutation.isPending} onClick={() => mutation.mutate({ credential: 'mock', role })}>
           Continue with Google (demo)
         </Button>
       ) : (
@@ -94,7 +112,7 @@ export function GoogleSignInButton() {
       )}
       {mutation.isPending && !env.useMockAuth && (
         <p role="status" className="text-center text-sm text-muted-foreground">
-          Signing you in…
+          {slow ? 'Waking up the server… this can take up to a minute.' : 'Signing you in…'}
         </p>
       )}
       <FormError message={error} />

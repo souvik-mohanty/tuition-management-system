@@ -1,6 +1,8 @@
 package com.tuition.saas.auth.service;
 
 import com.tuition.saas.common.exception.AuthException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -23,6 +25,7 @@ import java.util.Set;
 @Service
 public class GoogleAuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(GoogleAuthService.class);
     private static final String JWK_SET_URI = "https://www.googleapis.com/oauth2/v3/certs";
     private static final Set<String> ISSUERS = Set.of("https://accounts.google.com", "accounts.google.com");
 
@@ -33,9 +36,10 @@ public class GoogleAuthService {
     private final NimbusJwtDecoder decoder;
 
     public GoogleAuthService(@Value("${app.google.client-id:}") String clientId) {
-        this.clientId = clientId;
+        this.clientId = clientId.trim(); // guards against stray whitespace/newlines from pasted env values
+        log.info("Google sign-in client ID: {}", this.clientId.isBlank() ? "(NOT CONFIGURED)" : this.clientId);
         this.decoder = NimbusJwtDecoder.withJwkSetUri(JWK_SET_URI).build();
-        OAuth2TokenValidator<Jwt> validator = token -> validate(token, clientId);
+        OAuth2TokenValidator<Jwt> validator = token -> validate(token, this.clientId);
         this.decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(), validator));
     }
 
@@ -47,6 +51,7 @@ public class GoogleAuthService {
         try {
             jwt = decoder.decode(idToken);
         } catch (JwtException e) {
+            log.warn("Google ID token rejected: {}", e.getMessage());
             throw new AuthException(HttpStatus.UNAUTHORIZED, "Google sign-in failed. Please try again.");
         }
         return new GoogleIdentity(jwt.getSubject(), jwt.getClaimAsString("email"));

@@ -15,6 +15,11 @@ JWT (logout revokes it).
 - **Mobile OTP** (currently off): the login page shows "Currently OTP service is not working." Set `OTP_LOGIN_ENABLED`
   to `true` in `frontend/src/constants/features.ts` to bring the form back (needs a working SMS provider).
 
+**Role at login:** the login page asks which role to log in as (Owner/Admin, Teacher, Student, Parent). The choice is sent
+with the login and the backend returns only that role's tuition memberships; if the account has no such role it is
+rejected ("This account is not registered as a Teacher."). The login page also pings `/actuator/health/liveness` and shows
+"Waking up the server…" while a sleeping free-tier backend starts.
+
 Users cannot self-register: the email (or E.164 phone, e.g. `+919000000001`) must already exist in `users`.
 
 ### Google Cloud console (one-time, for Google sign-in)

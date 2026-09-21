@@ -7,13 +7,21 @@ import {
   type User,
 } from 'firebase/auth'
 import { env } from '@/app/config/env'
-import type { AuthSession } from '@/types'
+import type { AuthSession, Role } from '@/types'
 import { getFirebaseAuth } from '../firebase/client'
 import { delay, findMockSession, MOCK_OTP } from '../mock/db'
 import { apiClient, endpoints } from './client'
 import { ApiClientError } from './errors'
 
 export const RECAPTCHA_CONTAINER_ID = 'recaptcha-container'
+// Demo accounts, one per role.
+const MOCK_PHONE_BY_ROLE: Record<Role, string> = {
+  OWNER: '9000000001',
+  TEACHER: '9000000002',
+  STUDENT: '9000000003',
+  PARENT: '9000000004',
+}
+
 // Mock accounts are keyed by 10-digit Indian numbers.
 const mockKey = (e164: string) => e164.replace(/^\+91/, '')
 
@@ -152,17 +160,17 @@ export async function logoutRequest(): Promise<void> {
  * Google sign-in. `credential` is the ID token from Google Identity Services; the backend verifies it was issued
  * for our OAuth client and only lets in a verified email that matches a registered user (never creates users).
  */
-export async function loginWithGoogle(credential: string): Promise<AuthSession> {
+export async function loginWithGoogle(credential: string, role: Role): Promise<AuthSession> {
   if (env.useMockAuth) {
     await delay(undefined, 600)
-    const session = findMockSession('9000000001')
+    const session = findMockSession(MOCK_PHONE_BY_ROLE[role])
     if (!session) throw new ApiClientError(404, 'This Google account is not registered with any tuition center.')
     return session
   }
   try {
     const { data } = await apiClient.post<AuthSession>(
       `${endpoints.auth}/google`,
-      { idToken: credential },
+      { idToken: credential, role },
       { timeout: EXCHANGE_TIMEOUT_MS },
     )
     return data

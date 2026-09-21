@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
+import { RouteError } from '@/components/common/RouteError'
 import { PageSkeleton } from '@/components/common/states'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PublicLayout } from '@/components/layout/PublicLayout'
@@ -105,36 +106,41 @@ const roleSection = (prefix: string, role: 'TEACHER' | 'STUDENT' | 'PARENT', mod
 
 export const router = createBrowserRouter([
   {
-    element: <PublicLayout />,
-    children: [
-      { path: '/', element: suspense(<HomePage />) },
-      { path: '/features', element: suspense(<FeaturesPage />) },
-      { path: '/pricing', element: suspense(<PricingPage />) },
-      { path: '/about', element: suspense(<AboutPage />) },
-      { path: '/contact', element: suspense(<ContactPage />) },
-    ],
-  },
-  { path: '/login', element: suspense(<LoginPage />) },
-  { path: '/select-tuition', element: suspense(<SelectTuitionPage />) },
-  { path: '/session-expired', element: suspense(<SessionExpiredPage />) },
-  { path: '/unauthorized', element: suspense(<UnauthorizedPage />) },
-  {
-    element: <RequireAuth />,
+    errorElement: <RouteError />,
     children: [
       {
-        element: <RequireRole role="OWNER" />,
+        element: <PublicLayout />,
         children: [
-          {
-            element: <DashboardLayout />,
-            children: [{ path: '/dashboard', element: suspense(<OwnerDashboardPage />) }, ...toRoutes(ownerModules).map((r) => ({ ...r, path: `/${r.path}` }))],
-          },
+          { path: '/', element: suspense(<HomePage />) },
+          { path: '/features', element: suspense(<FeaturesPage />) },
+          { path: '/pricing', element: suspense(<PricingPage />) },
+          { path: '/about', element: suspense(<AboutPage />) },
+          { path: '/contact', element: suspense(<ContactPage />) },
         ],
       },
-      roleSection('/teacher', 'TEACHER', teacherModules),
-      roleSection('/student', 'STUDENT', studentModules),
-      roleSection('/parent', 'PARENT', parentModules),
+      { path: '/login', element: suspense(<LoginPage />) },
+      { path: '/select-tuition', element: suspense(<SelectTuitionPage />) },
+      { path: '/session-expired', element: suspense(<SessionExpiredPage />) },
+      { path: '/unauthorized', element: suspense(<UnauthorizedPage />) },
+      {
+        element: <RequireAuth />,
+        children: [
+          {
+            element: <RequireRole role="OWNER" />,
+            children: [
+              {
+                element: <DashboardLayout />,
+                children: [{ path: '/dashboard', element: suspense(<OwnerDashboardPage />) }, ...toRoutes(ownerModules).map((r) => ({ ...r, path: `/${r.path}` }))],
+              },
+            ],
+          },
+          roleSection('/teacher', 'TEACHER', teacherModules),
+          roleSection('/student', 'STUDENT', studentModules),
+          roleSection('/parent', 'PARENT', parentModules),
+        ],
+      },
+      { path: '/home', element: <Navigate to="/" replace /> },
+      { path: '*', element: suspense(<NotFoundPage />) },
     ],
   },
-  { path: '/home', element: <Navigate to="/" replace /> },
-  { path: '*', element: suspense(<NotFoundPage />) },
 ])

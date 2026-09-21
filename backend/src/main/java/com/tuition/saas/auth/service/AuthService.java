@@ -34,6 +34,9 @@ public class AuthService {
             "STUDENT", "STUDENT",
             "PARENT", "PARENT");
 
+    private static final Map<String, String> ROLE_LABELS = Map.of(
+            "OWNER", "an Owner/Admin", "TEACHER", "a Teacher", "STUDENT", "a Student", "PARENT", "a Parent");
+
     private final FirebaseAuthService firebase;
     private final GoogleAuthService google;
     private final JwtService jwtService;
@@ -72,11 +75,11 @@ public class AuthService {
         User user = users.findByPhone(identity.phoneNumber())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND,
                         "This number is not registered with any tuition center."));
-        return buildLogin(user);
+        return buildLogin(user, null);
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse loginWithGoogle(String idToken, String clientIp) {
+    public LoginResponse loginWithGoogle(String idToken, String role, String clientIp) {
         enforce("ip:" + clientIp, ipMax);
 
         GoogleAuthService.GoogleIdentity identity = google.verify(idToken);
@@ -87,7 +90,7 @@ public class AuthService {
         User user = users.findByEmailIgnoreCase(identity.email())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND,
                         "This Google account is not registered with any tuition center."));
-        return buildLogin(user);
+        return buildLogin(user, role);
     }
 
     private void rejectReplay(String idToken) {
@@ -96,7 +99,8 @@ public class AuthService {
         }
     }
 
-    private LoginResponse buildLogin(User user) {
+    /** role is the role the user chose at login (null = any); only memberships with that role are returned. */
+    private LoginResponse buildLogin(User user, String role) {
         List<MembershipDto> active = memberships.findByUserId(user.getId()).stream()
                 .filter(m -> m.getTuition().getStatus() == TuitionStatus.ACTIVE)
                 .map(AuthService::toMembership)
@@ -105,12 +109,22 @@ public class AuthService {
         if (active.isEmpty()) {
             throw new AuthException(HttpStatus.FORBIDDEN, "You don't have access to any active tuition center.");
         }
+        List<MembershipDto> selected = selectByRole(active, role);
+        if (selected.isEmpty()) {
+            throw new AuthException(HttpStatus.FORBIDDEN,
+                    "This account is not registered as " + ROLE_LABELS.getOrDefault(role, role) + ".");
+        }
 
         String accessToken = jwtService.issueAccessToken(user.getId());
         return new LoginResponse(
                 accessToken,
                 new UserDto(String.valueOf(user.getId()), user.getName(), user.getPhone(), user.getEmail()),
-                active);
+                selected);
+    }
+
+    static List<MembershipDto> selectByRole(List<MembershipDto> memberships, String role) {
+        if (role == null) return memberships;
+        return memberships.stream().filter(m -> m.role().equals(role)).toList();
     }
 
     public void logout(String jti) {
