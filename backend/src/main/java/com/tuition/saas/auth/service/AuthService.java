@@ -35,6 +35,7 @@ public class AuthService {
             "PARENT", "PARENT");
 
     private final FirebaseAuthService firebase;
+    private final GoogleAuthService google;
     private final JwtService jwtService;
     private final RedisAuthStore store;
     private final UserRepository users;
@@ -43,12 +44,13 @@ public class AuthService {
     private final int ipMax;
     private final int phoneMax;
 
-    public AuthService(FirebaseAuthService firebase, JwtService jwtService, RedisAuthStore store,
+    public AuthService(FirebaseAuthService firebase, GoogleAuthService google, JwtService jwtService, RedisAuthStore store,
                        UserRepository users, UserTuitionRoleRepository memberships,
                        @Value("${app.auth.rate-limit.window-seconds}") long windowSeconds,
                        @Value("${app.auth.rate-limit.ip-max}") int ipMax,
                        @Value("${app.auth.rate-limit.phone-max}") int phoneMax) {
         this.firebase = firebase;
+        this.google = google;
         this.jwtService = jwtService;
         this.store = store;
         this.users = users;
@@ -64,17 +66,37 @@ public class AuthService {
 
         FirebaseAuthService.FirebaseIdentity identity = firebase.verify(idToken);
 
+        rejectReplay(idToken);
+        enforce("phone:" + identity.phoneNumber(), phoneMax);
+
+        User user = users.findByPhone(identity.phoneNumber())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND,
+                        "This number is not registered with any tuition center."));
+        return buildLogin(user);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponse loginWithGoogle(String idToken, String clientIp) {
+        enforce("ip:" + clientIp, ipMax);
+
+        GoogleAuthService.GoogleIdentity identity = google.verify(idToken);
+
+        rejectReplay(idToken);
+        enforce("email:" + identity.email().toLowerCase(), phoneMax);
+
+        User user = users.findByEmailIgnoreCase(identity.email())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND,
+                        "This Google account is not registered with any tuition center."));
+        return buildLogin(user);
+    }
+
+    private void rejectReplay(String idToken) {
         if (!store.markIdTokenUsed(sha256(idToken), ID_TOKEN_REPLAY_WINDOW)) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "This verification was already used. Please sign in again.");
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "This sign-in was already used. Please try again.");
         }
-        boolean google = identity.isGoogle();
-        enforce(google ? "email:" + identity.email().toLowerCase() : "phone:" + identity.phoneNumber(), phoneMax);
+    }
 
-        User user = (google ? users.findByEmailIgnoreCase(identity.email()) : users.findByPhone(identity.phoneNumber()))
-                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, google
-                        ? "This Google account is not registered with any tuition center."
-                        : "This number is not registered with any tuition center."));
-
+    private LoginResponse buildLogin(User user) {
         List<MembershipDto> active = memberships.findByUserId(user.getId()).stream()
                 .filter(m -> m.getTuition().getStatus() == TuitionStatus.ACTIVE)
                 .map(AuthService::toMembership)

@@ -34,3 +34,6 @@ build/
 
 # Secrets
 .env
+
+# Google OAuth client secrets
+client_secret*.json

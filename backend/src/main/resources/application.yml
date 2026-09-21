@@ -33,6 +33,9 @@ app:
   firebase:
     # Public identifier, not a secret. ID tokens are verified against Google's public keys.
     project-id: ${FIREBASE_PROJECT_ID:tuition-management-syste-2d320}
+  google:
+    # Public OAuth web client ID (Google Cloud Console). Google ID tokens must be issued for this client.
+    client-id: ${GOOGLE_CLIENT_ID:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   auth:

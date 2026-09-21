@@ -6,6 +6,8 @@ export const env = {
   // while other modules are still mocked.
   useMockApi,
   useMockAuth: (import.meta.env.VITE_USE_MOCK_AUTH ?? String(useMockApi)) === 'true',
+  // Public Google OAuth web client ID (not the client secret, which must never be in the frontend).
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
   // Public Firebase web config only; never put private credentials here.
   firebase: {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',

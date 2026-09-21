@@ -20,23 +20,16 @@ import java.util.Map;
 
 /**
  * Verifies Firebase ID tokens (RS256, Google public keys) without needing a service-account secret:
- * signature, issuer, audience, expiry, an accepted sign-in method and a recent sign-in.
- * Accepted methods: phone (phone_number claim) and Google (verified email claim).
+ * signature, issuer, audience, expiry, the phone sign-in provider and a recent sign-in.
  */
 @Service
 public class FirebaseAuthService {
 
+    private static final String PROVIDER_PHONE = "phone";
     private static final String JWK_SET_URI =
             "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
-    public static final String PROVIDER_PHONE = "phone";
-    public static final String PROVIDER_GOOGLE = "google.com";
-
-    public record FirebaseIdentity(String uid, String provider, String phoneNumber, String email) {
-
-        public boolean isGoogle() {
-            return PROVIDER_GOOGLE.equals(provider);
-        }
+    public record FirebaseIdentity(String uid, String phoneNumber) {
     }
 
     private final NimbusJwtDecoder decoder;
@@ -55,13 +48,9 @@ public class FirebaseAuthService {
         try {
             jwt = decoder.decode(idToken);
         } catch (JwtException e) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "Verification failed. Please sign in again.");
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "Verification failed. Please request a new OTP.");
         }
-        return new FirebaseIdentity(
-                jwt.getSubject(),
-                provider(jwt),
-                jwt.getClaimAsString("phone_number"),
-                jwt.getClaimAsString("email"));
+        return new FirebaseIdentity(jwt.getSubject(), jwt.getClaimAsString("phone_number"));
     }
 
     static OAuth2TokenValidatorResult validate(Jwt jwt, String projectId, long maxSignInAgeSeconds) {
@@ -72,22 +61,12 @@ public class FirebaseAuthService {
         if (jwt.getSubject() == null || jwt.getSubject().isBlank()) {
             return failure("Missing subject");
         }
-        String provider = provider(jwt);
-        if (PROVIDER_PHONE.equals(provider)) {
-            String phone = jwt.getClaimAsString("phone_number");
-            if (phone == null || phone.isBlank()) {
-                return failure("Missing phone number");
-            }
-        } else if (PROVIDER_GOOGLE.equals(provider)) {
-            String email = jwt.getClaimAsString("email");
-            if (email == null || email.isBlank()) {
-                return failure("Missing email");
-            }
-            if (!Boolean.TRUE.equals(jwt.getClaim("email_verified"))) {
-                return failure("Email is not verified");
-            }
-        } else {
-            return failure("Unsupported sign-in method");
+        if (!PROVIDER_PHONE.equals(provider(jwt))) {
+            return failure("Not a phone sign-in");
+        }
+        String phone = jwt.getClaimAsString("phone_number");
+        if (phone == null || phone.isBlank()) {
+            return failure("Missing phone number");
         }
         Instant authTime = toInstant(jwt.getClaim("auth_time"));
         if (authTime == null || authTime.isAfter(Instant.now().plusSeconds(60))

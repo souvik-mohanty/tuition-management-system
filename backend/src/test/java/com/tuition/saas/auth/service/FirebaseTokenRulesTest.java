@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FirebaseTokenRulesTest {
 
@@ -50,33 +49,10 @@ class FirebaseTokenRulesTest {
     }
 
     @Test
-    void acceptsGoogleSignInWithVerifiedEmail() {
-        assertFalse(check(token("google.com", b -> b.claim("email", "a@example.com").claim("email_verified", true)))
-                .hasErrors());
-    }
-
-    @Test
-    void rejectsGoogleSignInWithUnverifiedEmail() {
-        assertEquals("Email is not verified",
-                error(check(token("google.com", b -> b.claim("email", "a@example.com").claim("email_verified", false)))));
-    }
-
-    @Test
-    void rejectsGoogleSignInWithoutEmailVerifiedClaim() {
-        assertTrue(check(token("google.com", b -> b.claim("email", "a@example.com"))).hasErrors());
-    }
-
-    @Test
-    void rejectsGoogleSignInWithoutEmail() {
-        assertEquals("Missing email", error(check(token("google.com", b -> b.claim("email_verified", true)))));
-    }
-
-    @Test
-    void rejectsOtherSignInMethods() {
-        assertEquals("Unsupported sign-in method",
-                error(check(token("password", b -> b.claim("email", "a@example.com").claim("email_verified", true)))));
-        assertEquals("Unsupported sign-in method",
-                error(check(token("anonymous", b -> { }))));
+    void rejectsNonPhoneSignInMethods() {
+        assertEquals("Not a phone sign-in",
+                error(check(token("google.com", b -> b.claim("email", "a@example.com").claim("email_verified", true)))));
+        assertEquals("Not a phone sign-in", error(check(token("anonymous", b -> { }))));
     }
 
     @Test
@@ -88,8 +64,7 @@ class FirebaseTokenRulesTest {
     @Test
     void rejectsStaleSignIn() {
         long old = Instant.now().minusSeconds(MAX_AGE + 60).getEpochSecond();
-        Jwt jwt = token("google.com", b -> b.claim("email", "a@example.com").claim("email_verified", true)
-                .claim("auth_time", old));
+        Jwt jwt = token("phone", b -> b.claim("phone_number", "+919000000001").claim("auth_time", old));
         assertEquals("Sign-in is too old", error(check(jwt)));
     }
 }

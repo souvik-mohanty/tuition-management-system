@@ -5,19 +5,26 @@
 
 ## Login
 
-Sign-in is handled by Firebase Authentication in the browser. The frontend sends the resulting Firebase ID token to
-`POST /api/auth/firebase`; the backend verifies it against Google's public keys, matches it to a registered user, and
-returns its own JWT plus the user's tuition memberships. Redis holds login rate limits, single-use markers for ID tokens,
-and the server-side session behind each JWT (logout revokes it).
+Two sign-in methods; both end in `POST /api/auth/...` and the backend issues its own JWT plus the user's tuition
+memberships. Redis holds login rate limits, single-use markers for ID tokens, and the server-side session behind each
+JWT (logout revokes it).
 
-- **Google** (active): matched to a user by verified email. The user's `email` in `users` must equal their Google account.
+- **Google** (active): Google Identity Services in the browser gives an ID token; `POST /api/auth/google` verifies it was
+  issued for our OAuth client (`GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID`, public values) and matches the verified email
+  to `users.email`. The client *secret* is not used and must never be put in the frontend or the repo.
 - **Mobile OTP** (currently off): the login page shows "Currently OTP service is not working." Set `OTP_LOGIN_ENABLED`
   to `true` in `frontend/src/constants/features.ts` to bring the form back (needs a working SMS provider).
 
 Users cannot self-register: the email (or E.164 phone, e.g. `+919000000001`) must already exist in `users`.
 
-### Firebase console (one-time)
-0. Authentication > Sign-in method: enable **Google** (set a support email).
+### Google Cloud console (one-time, for Google sign-in)
+APIs & Services > Credentials > your OAuth 2.0 **Web client**:
+- **Authorized JavaScript origins**: `http://localhost:5173` and your production origin (e.g. `https://classops.vercel.app`).
+  No redirect URIs are needed.
+- OAuth consent screen: while it is in *Testing* mode only listed **test users** can sign in; add your Google accounts or
+  publish the app.
+
+### Firebase console (one-time, only for phone OTP)
 1. Authentication > Sign-in method: enable **Phone**.
 2. Authentication > Settings > Authorized domains: make sure your frontend domain is listed (`localhost` is by default).
 3. For development, add **test phone numbers** (Authentication > Sign-in method > Phone) to avoid sending real SMS.

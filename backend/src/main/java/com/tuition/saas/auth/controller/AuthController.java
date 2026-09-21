@@ -1,6 +1,7 @@
 package com.tuition.saas.auth.controller;
 
 import com.tuition.saas.auth.dto.FirebaseLoginRequest;
+import com.tuition.saas.auth.dto.GoogleLoginRequest;
 import com.tuition.saas.auth.dto.LoginResponse;
 import com.tuition.saas.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,12 @@ public class AuthController {
     @PostMapping("/firebase")
     public LoginResponse firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request, HttpServletRequest http) {
         return authService.loginWithFirebase(request.idToken(), http.getRemoteAddr());
+    }
+
+    /** Exchanges a Google Sign-In ID token for our access JWT (user must already be registered by email). */
+    @PostMapping("/google")
+    public LoginResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request, HttpServletRequest http) {
+        return authService.loginWithGoogle(request.idToken(), http.getRemoteAddr());
     }
 
     @PostMapping("/logout")
