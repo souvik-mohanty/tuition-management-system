@@ -2,6 +2,8 @@ import { Link, Navigate } from 'react-router-dom'
 import { APP_NAME, Logo } from '@/components/common/Logo'
 import { Card } from '@/components/ui/card'
 import { ROLE_HOME } from '@/constants/navigation'
+import { OTP_LOGIN_ENABLED } from '@/constants/features'
+import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
 import { LoginForm } from '@/features/auth/LoginForm'
 import { useSession } from '@/hooks/useSession'
 
@@ -18,9 +20,24 @@ export default function LoginPage() {
         <Card className="p-6 sm:p-8">
           <h1 className="text-xl font-semibold">Log in</h1>
           <p className="mb-6 mt-1 text-sm text-muted-foreground">
-            Sign in with your registered mobile number. We&apos;ll send you a one-time password.
+            Sign in with the Google account registered with your tuition center.
           </p>
-          <LoginForm />
+
+          <GoogleSignInButton />
+
+          <div className="my-6 flex items-center gap-3 text-xs uppercase text-muted-foreground" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          {OTP_LOGIN_ENABLED ? (
+            <LoginForm />
+          ) : (
+            <p role="status" className="rounded-md bg-muted p-3 text-center text-sm text-muted-foreground">
+              Currently OTP service is not working.
+            </p>
+          )}
         </Card>
       </div>
     </div>

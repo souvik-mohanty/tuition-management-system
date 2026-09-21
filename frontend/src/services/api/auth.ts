@@ -1,7 +1,9 @@
 import { FirebaseError } from 'firebase/app'
 import {
+  GoogleAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signInWithPopup,
   signOut,
   type ConfirmationResult,
   type User,
@@ -55,8 +57,13 @@ function mapFirebaseError(e: unknown): ApiClientError {
         return new ApiClientError(0, 'Network error. Check your connection and try again.')
       case 'auth/captcha-check-failed':
         return new ApiClientError(400, 'Verification check failed. Please refresh the page and try again.')
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+        return new ApiClientError(400, 'Sign-in was cancelled. Please try again.')
+      case 'auth/popup-blocked':
+        return new ApiClientError(400, 'Your browser blocked the sign-in window. Allow pop-ups and try again.')
       case 'auth/operation-not-allowed':
-        return new ApiClientError(503, 'Phone sign-in is not enabled for this app yet. Please contact support.')
+        return new ApiClientError(503, 'This sign-in method is not enabled for this app yet. Please contact support.')
       case 'auth/billing-not-enabled':
         return new ApiClientError(503, 'SMS verification is not available right now. Please contact support.')
       case 'auth/unauthorized-domain':
@@ -64,7 +71,7 @@ function mapFirebaseError(e: unknown): ApiClientError {
       default:
         return new ApiClientError(
           500,
-          'Unable to verify your number right now. Please try again.' + (import.meta.env.DEV ? ` [${e.code}]` : ''),
+          'Unable to sign in right now. Please try again.' + (import.meta.env.DEV ? ` [${e.code}]` : ''),
         )
     }
   }
@@ -145,5 +152,45 @@ export async function logoutRequest(): Promise<void> {
     await apiClient.post(`${endpoints.auth}/logout`)
   } catch {
     // ignore: the token expires on its own
+  }
+}
+
+/**
+ * Google sign-in via Firebase. The backend only lets in Google accounts whose verified email matches a
+ * registered user; it never creates users from a Google login.
+ */
+export async function loginWithGoogle(): Promise<AuthSession> {
+  if (env.useMockAuth) {
+    await delay(undefined, 600)
+    const session = findMockSession('9000000001')
+    if (!session) throw new ApiClientError(404, 'This Google account is not registered with any tuition center.')
+    return session
+  }
+
+  let idToken: string
+  try {
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+    const credential = await signInWithPopup(getFirebaseAuth(), provider)
+    idToken = await credential.user.getIdToken(true)
+  } catch (e) {
+    throw mapFirebaseError(e)
+  }
+
+  try {
+    const { data } = await apiClient.post<AuthSession>(
+      `${endpoints.auth}/firebase`,
+      { idToken },
+      { timeout: EXCHANGE_TIMEOUT_MS },
+    )
+    return data
+  } catch (e) {
+    if (e instanceof ApiClientError && e.status === 0) {
+      throw new ApiClientError(0, "We couldn't reach the Classops server. Please try again in a moment.")
+    }
+    throw e
+  } finally {
+    // Our JWT is the session; don't keep a parallel Firebase session in the browser.
+    void signOut(getFirebaseAuth())
   }
 }

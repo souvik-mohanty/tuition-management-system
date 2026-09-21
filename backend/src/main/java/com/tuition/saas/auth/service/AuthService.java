@@ -65,13 +65,15 @@ public class AuthService {
         FirebaseAuthService.FirebaseIdentity identity = firebase.verify(idToken);
 
         if (!store.markIdTokenUsed(sha256(idToken), ID_TOKEN_REPLAY_WINDOW)) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "This verification was already used. Please request a new OTP.");
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "This verification was already used. Please sign in again.");
         }
-        enforce("phone:" + identity.phoneNumber(), phoneMax);
+        boolean google = identity.isGoogle();
+        enforce(google ? "email:" + identity.email().toLowerCase() : "phone:" + identity.phoneNumber(), phoneMax);
 
-        User user = users.findByPhone(identity.phoneNumber())
-                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND,
-                        "This number is not registered with any tuition center."));
+        User user = (google ? users.findByEmailIgnoreCase(identity.email()) : users.findByPhone(identity.phoneNumber()))
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, google
+                        ? "This Google account is not registered with any tuition center."
+                        : "This number is not registered with any tuition center."));
 
         List<MembershipDto> active = memberships.findByUserId(user.getId()).stream()
                 .filter(m -> m.getTuition().getStatus() == TuitionStatus.ACTIVE)

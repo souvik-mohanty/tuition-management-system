@@ -3,16 +3,21 @@
 - `backend/` Spring Boot API (PostgreSQL, Redis)
 - `frontend/` React + TypeScript app
 
-## Login (Firebase phone OTP)
+## Login
 
-Firebase sends and verifies the SMS OTP in the browser. The frontend then sends the Firebase ID token to
-`POST /api/auth/firebase`; the backend verifies it against Google's public keys, checks the phone belongs to a
-registered user, and returns its own JWT plus the user's tuition memberships. Redis holds login rate limits,
-single-use markers for ID tokens, and the server-side session behind each JWT (logout revokes it).
+Sign-in is handled by Firebase Authentication in the browser. The frontend sends the resulting Firebase ID token to
+`POST /api/auth/firebase`; the backend verifies it against Google's public keys, matches it to a registered user, and
+returns its own JWT plus the user's tuition memberships. Redis holds login rate limits, single-use markers for ID tokens,
+and the server-side session behind each JWT (logout revokes it).
 
-Users cannot self-register: the phone number (E.164, e.g. `+919000000001`) must already exist in `users`.
+- **Google** (active): matched to a user by verified email. The user's `email` in `users` must equal their Google account.
+- **Mobile OTP** (currently off): the login page shows "Currently OTP service is not working." Set `OTP_LOGIN_ENABLED`
+  to `true` in `frontend/src/constants/features.ts` to bring the form back (needs a working SMS provider).
+
+Users cannot self-register: the email (or E.164 phone, e.g. `+919000000001`) must already exist in `users`.
 
 ### Firebase console (one-time)
+0. Authentication > Sign-in method: enable **Google** (set a support email).
 1. Authentication > Sign-in method: enable **Phone**.
 2. Authentication > Settings > Authorized domains: make sure your frontend domain is listed (`localhost` is by default).
 3. For development, add **test phone numbers** (Authentication > Sign-in method > Phone) to avoid sending real SMS.

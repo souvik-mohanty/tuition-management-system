@@ -1,19 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { AlertCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { env } from '@/app/config/env'
+import { FormError } from '@/components/common/FormError'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ROLE_HOME } from '@/constants/navigation'
 import { RECAPTCHA_CONTAINER_ID, sendOtp, verifyOtp } from '@/services/api/auth'
 import { normalizeError } from '@/services/api/errors'
-import { useAuthStore } from '@/store/authStore'
-import { useTenantStore } from '@/store/tenantStore'
+import { useFinishLogin } from './useFinishLogin'
 
 const phoneSchema = z
   .object({
@@ -41,19 +38,8 @@ const otpSchema = z.object({
 
 const RESEND_SECONDS = 30
 
-function FormError({ message }: { message?: string }) {
-  if (!message) return null
-  return (
-    <p role="alert" className="flex items-center gap-1.5 text-sm text-destructive">
-      <AlertCircle className="h-4 w-4 shrink-0" aria-hidden /> {message}
-    </p>
-  )
-}
-
 function LoginSteps() {
-  const navigate = useNavigate()
-  const setSession = useAuthStore((s) => s.setSession)
-  const setCurrentTuition = useTenantStore((s) => s.setCurrentTuition)
+  const finishLogin = useFinishLogin()
   const [phone, setPhone] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(0)
 
@@ -80,16 +66,7 @@ function LoginSteps() {
 
   const verifyMutation = useMutation({
     mutationFn: ({ phone, otp }: { phone: string; otp: string }) => verifyOtp(phone, otp),
-    onSuccess: (session) => {
-      setSession(session)
-      if (session.memberships.length === 1) {
-        setCurrentTuition(session.memberships[0].tuitionId)
-        navigate(ROLE_HOME[session.memberships[0].role], { replace: true })
-      } else {
-        setCurrentTuition(null)
-        navigate('/select-tuition', { replace: true })
-      }
-    },
+    onSuccess: finishLogin,
   })
 
   const sendError = sendMutation.error ? normalizeError(sendMutation.error).message : undefined
