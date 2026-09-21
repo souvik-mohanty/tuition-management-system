@@ -18,6 +18,30 @@ const OwnerDashboardPage = lazy(() => import('@/pages/owner/OwnerDashboardPage')
 const TeacherDashboardPage = lazy(() => import('@/pages/teacher/TeacherDashboardPage'))
 const StudentDashboardPage = lazy(() => import('@/pages/student/StudentDashboardPage'))
 const ParentDashboardPage = lazy(() => import('@/pages/parent/ParentDashboardPage'))
+type Page = React.LazyExoticComponent<() => React.JSX.Element>
+type Impl = Record<string, Page>
+
+const ownerImpl: Impl = {
+  students: lazy(() => import('@/pages/owner/StudentsPage')),
+  'students/:id': lazy(() => import('@/pages/owner/StudentDetailPage')),
+  parents: lazy(() => import('@/pages/owner/ParentsPage')),
+  teachers: lazy(() => import('@/pages/owner/TeachersPage')),
+  'teachers/:id': lazy(() => import('@/pages/owner/TeacherDetailPage')),
+  batches: lazy(() => import('@/pages/owner/BatchesPage')),
+  'batches/:id': lazy(() => import('@/pages/owner/BatchDetailPage')),
+  subjects: lazy(() => import('@/pages/owner/SubjectsPage')),
+  classes: lazy(() => import('@/pages/owner/ClassesPage')),
+}
+const teacherImpl: Impl = {
+  classes: lazy(() => import('@/pages/teacher/TeacherClassesPage')),
+  students: lazy(() => import('@/pages/teacher/TeacherStudentsPage')),
+}
+const studentImpl: Impl = { classes: lazy(() => import('@/pages/student/StudentClassesPage')) }
+const parentImpl: Impl = {
+  children: lazy(() => import('@/pages/parent/ParentChildrenPage')),
+  classes: lazy(() => import('@/pages/parent/ParentClassesPage')),
+}
+
 const SessionExpiredPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.SessionExpiredPage })))
 const UnauthorizedPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.UnauthorizedPage })))
 const NotFoundPage = lazy(() => import('@/pages/auth/StatusPages').then((m) => ({ default: m.NotFoundPage })))
@@ -90,14 +114,18 @@ const parentModules: ModuleDef[] = [
   ['profile', 'Profile', 1],
 ]
 
-const toRoutes = (defs: ModuleDef[]): RouteObject[] =>
-  defs.map(([path, title, phase]) => ({ path, element: <ModulePage title={title} phase={phase} /> }))
+const toRoutes = (defs: ModuleDef[], impl: Impl = {}): RouteObject[] =>
+  defs.map(([path, title, phase]) => {
+    const Built = impl[path]
+    return { path, element: Built ? suspense(<Built />) : <ModulePage title={title} phase={phase} /> }
+  })
 
 const roleSection = (
   prefix: string,
   role: 'TEACHER' | 'STUDENT' | 'PARENT',
-  Dashboard: React.LazyExoticComponent<() => React.JSX.Element>,
+  Dashboard: Page,
   modules: ModuleDef[],
+  impl: Impl,
 ): RouteObject => ({
   element: <RequireRole role={role} />,
   children: [
@@ -105,7 +133,7 @@ const roleSection = (
       element: <DashboardLayout />,
       children: [
         { path: `${prefix}/dashboard`, element: suspense(<Dashboard />) },
-        ...toRoutes(modules).map((r) => ({ ...r, path: `${prefix}/${r.path}` })),
+        ...toRoutes(modules, impl).map((r) => ({ ...r, path: `${prefix}/${r.path}` })),
       ],
     },
   ],
@@ -137,13 +165,13 @@ export const router = createBrowserRouter([
             children: [
               {
                 element: <DashboardLayout />,
-                children: [{ path: '/dashboard', element: suspense(<OwnerDashboardPage />) }, ...toRoutes(ownerModules).map((r) => ({ ...r, path: `/${r.path}` }))],
+                children: [{ path: '/dashboard', element: suspense(<OwnerDashboardPage />) }, ...toRoutes(ownerModules, ownerImpl).map((r) => ({ ...r, path: `/${r.path}` }))],
               },
             ],
           },
-          roleSection('/teacher', 'TEACHER', TeacherDashboardPage, teacherModules),
-          roleSection('/student', 'STUDENT', StudentDashboardPage, studentModules),
-          roleSection('/parent', 'PARENT', ParentDashboardPage, parentModules),
+          roleSection('/teacher', 'TEACHER', TeacherDashboardPage, teacherModules, teacherImpl),
+          roleSection('/student', 'STUDENT', StudentDashboardPage, studentModules, studentImpl),
+          roleSection('/parent', 'PARENT', ParentDashboardPage, parentModules, parentImpl),
         ],
       },
       { path: '/home', element: <Navigate to="/" replace /> },

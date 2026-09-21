@@ -1,6 +1,7 @@
 import { Menu, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { Toaster } from '@/components/common/Toaster'
 import { TenantSelector } from '@/features/tenant/TenantSelector'
 import { useSession } from '@/hooks/useSession'
 import { useUiStore } from '@/store/uiStore'
@@ -65,6 +66,7 @@ export function DashboardLayout() {
           </div>
         </main>
       </div>
+      <Toaster />
     </div>
   )
 }

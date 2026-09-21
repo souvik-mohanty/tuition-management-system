@@ -46,9 +46,9 @@ app:
     # Max age of the Firebase sign-in (auth_time) accepted for login.
     max-sign-in-age-seconds: 300
   demo:
-    # DEMO ONLY. When true, any verified Google account can sign in as any role (users are auto-created and the chosen
-    # role is granted on a demo tuition). Never enable with real data.
-    enabled: ${DEMO_MODE:false}
+    # DEMO PROJECT DEFAULT: any verified Google account can sign in as any role (users are auto-created and the chosen
+    # role is granted on a demo tuition). Set DEMO_MODE=false before using real data.
+    enabled: ${DEMO_MODE:true}
   seed:
     # Optional: creates a demo tuition + owner with this E.164 phone (e.g. +919000000001) on startup.
     owner-phone: ${SEED_OWNER_PHONE:}

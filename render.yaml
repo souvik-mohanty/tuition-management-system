@@ -23,8 +23,7 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      # DEMO ONLY: any verified Google account can sign in as any role (users are auto-created). Remove or set to
-      # "false" before using real tuition data.
+      # Demo project: any verified Google account can sign in as any role. Set to "false" before using real data.
       - key: DEMO_MODE
         value: "true"
       - key: JWT_SECRET

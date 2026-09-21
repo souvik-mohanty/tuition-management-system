@@ -20,7 +20,7 @@ with the login and the backend returns only that role's tuition memberships; if 
 rejected ("This account is not registered as a Teacher."). The login page also pings `/actuator/health/liveness` and shows
 "Waking up the server…" while a sleeping free-tier backend starts.
 
-**Demo mode:** with `DEMO_MODE=true` (set in `render.yaml` for the hosted demo) any verified Google account can sign in
+**Demo mode (on by default):** unless `DEMO_MODE=false` is set, any verified Google account can sign in
 as any role; the user is auto-created and the chosen role is granted on a demo tuition center, so every role's dashboard
 can be shown. With it off (the default) only registered users with that role get in. Dashboards currently show built-in
 sample data (`VITE_USE_MOCK_API=true`). **Never enable demo mode with real data.**
@@ -57,6 +57,20 @@ npm run dev               # http://localhost:5173
 ```
 `frontend/.env.development` uses real Firebase login against the backend, with feature data still mocked.
 Set `VITE_USE_MOCK_AUTH=true` to use the offline demo login instead.
+
+## Feature status
+
+**Done (Phase 1-2, sample data):** public site, login (Google) with role picker, owner/teacher/student/parent dashboards, and
+the core-management modules: **Students, Parents, Teachers, Batches, Subjects, Classes** (day/week/month calendar and list,
+scheduling with teacher/batch clash detection, cancel/reschedule), each with search, filters, sorting, pagination,
+forms with validation, and activate/deactivate.
+
+While `VITE_USE_MOCK_API=true` these modules run on an in-browser demo database that is saved in the browser for the day
+(refresh-safe, resets tomorrow). With it `false` they call the REST endpoints under `/api/*` (see
+`frontend/src/services/api/directory.ts`), which the backend does not implement yet.
+
+**Still placeholders:** attendance, syllabus, assignments, tests, fees, payments, invoices, teacher payments, wallet,
+analytics, notifications, subscription, settings and profile.
 
 ## Deployment
 
